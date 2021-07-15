@@ -1,0 +1,57 @@
+# 假目标，第一个目标
+PHONY := __build
+__build:
+
+# 赋一个空值
+obj-y :=
+subdir-y :=
+
+# 包含当前目录下的Makefile，里面有要包含的obj-y
+include Makefile
+
+# 若：obj-y := a.o b.o c/ d/
+# 那么函数：filter %/, $(obj-y 表示将不符合%/的内容去除，既保留c/、d/
+# $(filter %/, $(obj-y))   : c/ d/
+# 函数patsubst %/,%,$(filter %/, $(obj-y))表示在 $(filter %/, $(obj-y) 中，将 %/ 替换成 %
+# 那么__subdir-y就为  : c d
+# 随后子目录subdir-y就为    : c d
+__subdir-y	:= $(patsubst %/,%,$(filter %/, $(obj-y)))
+subdir-y	+= $(__subdir-y)
+
+# c/built-in.o d/built-in.o
+subdir_objs := $(foreach f,$(subdir-y),$(f)/built-in.o)
+
+# a.o b.o
+# 那么函数：filter-out %/, $(obj-y 表示将符合%/的内容去除，既去除c/、d/
+# $(foreach f,$(cur_objs),.$(f).d) 生成依赖文件
+# $(wildcard $(dep_files)) 查看dep_files中是否有“.d”文件，有的话就取出来
+cur_objs := $(filter-out %/, $(obj-y))
+dep_files := $(foreach f,$(cur_objs),.$(f).d)
+dep_files := $(wildcard $(dep_files))
+
+# 如果dep_files变量不为空的话，就把dep_files包含进来
+ifneq ($(dep_files),)
+  include $(dep_files)
+endif
+
+PHONY += $(subdir-y)
+
+# __build依赖于后面两项
+__build : $(subdir-y) built-in.o
+
+# 递归地进行处理子目录使用Makefile.build进行编译
+$(subdir-y):
+	make -C $@ -f $(TOPDIR)/Makefile.build
+
+# 生成built-in.o
+built-in.o : $(cur_objs) $(subdir_objs)
+	$(LD) -r -o $@ $^
+
+# 依赖文件，其中”=“表示用到的时候才会赋值
+dep_file = .$@.d
+
+%.o : %.c
+	$(CC) $(CFLAGS) -Wp,-MD,$(dep_file) -c -o $@ $<
+
+# 假象目标”.PHONY“依赖于”PHONY“
+.PHONY : $(PHONY)
