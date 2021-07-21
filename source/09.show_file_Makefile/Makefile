@@ -54,6 +54,8 @@ obj-y += fonts/
 # 参数‘-f name’或‘--file=name’能够告诉make读名字为‘name’的文件作为makefile文件。
 # 如果您使用 ‘-f’或‘--file’参数多于一个，意味着您指定了多个makefile文件，所有的makefile文件按具体的顺序发生作用。
 # 一旦您使用了‘-f’或‘--file’参数，将不再自动检查是否存在名为‘GNUmakefile’、‘makefile’或‘Makefile’的makefile文件。
+#
+# 当make的目标为all时，-C $(KDIR) 指明跳转到内核源码目录下读取那里的Makefile
 all : 
 	make -C ./ -f $(TOPDIR)/Makefile.build
 	$(CC) $(LDFLAGS) -o $(TARGET) built-in.o
